@@ -1,0 +1,85 @@
+---
+title: "Workspace layout"
+description: "Understand how igo organizes Go versions in the workspace directory."
+---
+
+igo stores everything under a single workspace directory — by default `~/go`. No files are written outside this directory (except your shell config).
+
+## Default location
+
+The workspace defaults to `~/go`. Override it with `-godir`:
+
+```bash
+igo -i 1.23.4 -godir /opt/go
+```
+
+Use `-system` to install at `/usr/go` instead:
+
+```bash
+igo -i 1.23.4 -system
+```
+
+<Warning>
+  The `-system` flag installs to `/usr/go`, which may require elevated permissions depending on your system configuration.
+</Warning>
+
+## Directory structure
+
+```
+~/go/
+├── version              # active version string, e.g. "1.23.4"
+├── bin -> versions/1.23.4/go/bin    # GOBIN symlink
+├── root -> versions/1.23.4/go       # GOROOT symlink
+├── path -> versions/1.23.4          # GOPATH symlink
+├── downloads/           # cached release tarballs
+├── shims/
+│   ├── go               # version-resolving shim script
+│   └── gofmt            # version-resolving shim script
+├── versions/
+│   ├── 1.23.4/
+│   │   ├── installer.lock   # prevents re-installation
+│   │   └── go/
+│   │       ├── bin/
+│   │       │   ├── go.1.23.4       # versioned Go binary
+│   │       │   └── gofmt.1.23.4    # versioned gofmt binary
+│   │       ├── pkg/
+│   │       │   └── mod/            # GOMODCACHE
+│   │       └── src/
+│   └── 1.22.6/
+│       └── go/
+├── cache/               # GOCACHE
+├── telemetry/           # GOTELEMETRYDIR
+└── scripts/             # GOSCRIPTS
+```
+
+## Key files and symlinks
+
+**`version` file** — A plain text file containing the active version string (e.g. `1.23.4`). Updated by `igo -s` and `igo -i`.
+
+**Symlinks** — `bin`, `root`, and `path` are symlinks that point into the active version's directory. When you run `igo -s 1.23.4`, igo removes these symlinks and recreates them pointing at the new version.
+
+| Symlink | Points to | Go env var |
+|---------|-----------|------------|
+| `bin`   | `versions/<ver>/go/bin` | `GOBIN` |
+| `root`  | `versions/<ver>/go` | `GOROOT` |
+| `path`  | `versions/<ver>` | `GOPATH` |
+
+**Versioned binaries** — igo renames `go` → `go.<version>` and `gofmt` → `gofmt.<version>` inside each version's `bin/` directory. The shims use these versioned names to invoke the correct binary.
+
+## Lock files
+
+**`~/go/installer.lock`** — Created at the start of `igo -i` and removed at the end. If this file exists when you run `igo -i`, the installation is aborted to prevent concurrent installs.
+
+**`~/go/versions/<version>/installer.lock`** — Written after a successful install. Prevents re-installing the same version. Remove this file manually if you need to force a reinstall.
+
+## Backup behavior
+
+If `bin`, `root`, or `path` exist as real directories (not symlinks) when igo tries to create a symlink, igo renames them to `bin.bak`, `root.bak`, or `path.bak` to avoid data loss.
+
+## Downloaded tarballs
+
+Release tarballs are cached in `~/go/downloads/`. If the tarball for a version already exists there, igo skips the download step. You can safely delete files from this directory to free disk space.
+
+<Note>
+  igo sets the sticky bit and setuid/setgid on installed version directories after installation. The `igo -u` command removes these bits before deleting the directory.
+</Note>

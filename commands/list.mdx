@@ -1,0 +1,48 @@
+---
+title: "List installed versions"
+description: "Display all installed Go versions using igo -l."
+---
+
+The `-l` flag prints a table of every Go version installed in your workspace, along with when each version was installed and which one is currently active.
+
+## Syntax
+
+```bash
+igo -l
+```
+
+## Example
+
+```bash
+igo -l
+```
+
+Output:
+
+```
+igo [open source at github.com/ProjectApario/igo]
+┌──────────┬──────────────────┬─────────────┐
+│ VERSION  │     CREATION     │   STATUS    │
+├──────────┼──────────────────┼─────────────┤
+│ 1.24.3   │ 2025-05-22 11:15 │             │
+│ 1.24.0   │ 2025-05-23 09:37 │             │
+│ 1.23.4   │ 2025-05-22 11:30 │             │
+│ 1.23.2   │ 2025-05-22 11:24 │             │
+│ 1.23.0   │ 2025-05-22 11:23 │             │
+│ 1.22.7   │ 2025-06-02 22:49 │             │
+│ 1.22.6   │ 2025-06-02 22:47 │  * ACTIVE   │
+│ 1.22.5   │ 2025-05-24 09:59 │             │
+├──────────┼──────────────────┼─────────────┤
+│ I ❤ YOU! │ Made In America  │ Be Inspired │
+└──────────┴──────────────────┴─────────────┘
+```
+
+## Table columns
+
+| Column | Description |
+|---|---|
+| **VERSION** | The installed Go version string. |
+| **CREATION** | The modification time of the version's directory, which reflects when it was installed. |
+| **STATUS** | Shows `* ACTIVE` for the version currently pointed to by the workspace symlinks. Empty for all other versions. |
+
+Versions are sorted newest-first by version number.

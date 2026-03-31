@@ -1,23 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "igo",
+  "projectType": "cli-tool",
+  "projectName": "igo",
+  "projectDescription": "igo (Install Go) is a CLI tool for installing and managing multiple Go versions on macOS and Linux without requiring root privileges.",
   "theme": "aspen",
-  "colors": {
-    "primary": "#00ADD8",
-    "light": "#5DC9E2",
-    "dark": "#007D9C"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/andreimerlescu/igo"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/andreimerlescu/igo"
-    }
-  },
+  "primaryColor": "#00ADD8",
+  "lightColor": "#5DC9E2",
+  "darkColor": "#007D9C",
   "navigation": {
     "tabs": [
       {
@@ -68,5 +56,31 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Install multiple Go versions side-by-side in $HOME without root privileges",
+    "Switch between Go versions instantly using symlinks",
+    "Automatic shim-based version resolution from go.mod or .go_version files",
+    "Shell environment auto-configuration for GOROOT, GOBIN, GOPATH, GOMODCACHE",
+    "Fix broken Go installations with symlink repair",
+    "Installs extra developer tools automatically after each Go version install",
+    "Supports macOS (amd64/arm64) and Linux (amd64/arm64)",
+    "Configurable via YAML config file (~/.igo.config.yml)"
+  ],
+  "publicApiSurface": [
+    "igo -i <version>",
+    "igo -u <version>",
+    "igo -s <version>",
+    "igo -a <version>",
+    "igo -f <version>",
+    "igo -l",
+    "igo -e",
+    "igo -v",
+    "igo -godir <path>",
+    "igo -goos <os>",
+    "igo -goarch <arch>",
+    "igo -debug",
+    "igo -verbose",
+    "igo -system"
+  ]
 }

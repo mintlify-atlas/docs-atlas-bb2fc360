@@ -1,0 +1,90 @@
+---
+title: "Install a Go version"
+description: "Download and install a specific version of Go using igo -i."
+---
+
+The `-i` flag downloads an official Go release tarball from `go.dev/dl`, extracts it into your workspace, creates shims and symlinks, and configures your shell environment.
+
+## Syntax
+
+```bash
+igo -i <version>
+```
+
+<ParamField path="version" type="string" required>
+  The Go version to install in `X.Y.Z` format (e.g. `1.23.4`). Must be `1.16.0` or higher. igo verifies the version exists on `go.dev/dl` before downloading.
+</ParamField>
+
+## Examples
+
+```bash
+# Install Go 1.23.4
+igo -i 1.23.4
+
+# Install to a custom workspace directory
+igo -i 1.23.4 -godir /Shared/go
+
+# Show debug output during installation
+igo -i 1.23.4 -debug
+
+# Show verbose output during installation
+igo -i 1.23.4 -verbose
+```
+
+## What it does
+
+<Steps>
+  <Step title="Validate the version">
+    igo checks that the version matches the `X.Y.Z` format and is at least `1.16.0`. It then sends a HEAD request to `go.dev/dl` to confirm the tarball exists for your OS and architecture before proceeding.
+  </Step>
+  <Step title="Create workspace directories">
+    If the workspace (default: `~/go`) does not exist, igo creates it along with the `downloads/`, `versions/`, and `shims/` subdirectories.
+  </Step>
+  <Step title="Write the installer lock file">
+    igo writes `~/go/installer.lock` before downloading. This prevents a second concurrent `igo -i` run from interfering with an in-progress installation.
+  </Step>
+  <Step title="Download the tarball">
+    igo downloads `go<version>.<goos>-<goarch>.tar.gz` from `go.dev/dl` into `~/go/downloads/`. If the file is already present, this step is skipped.
+  </Step>
+  <Step title="Extract to the versions directory">
+    The tarball is extracted to `~/go/versions/<version>/`.
+  </Step>
+  <Step title="Rename the versioned binaries">
+    The `go` binary is renamed to `go.<version>` and `gofmt` is renamed to `gofmt.<version>` inside `~/go/versions/<version>/go/bin/`. This lets multiple versions coexist without conflict.
+  </Step>
+  <Step title="Create shim scripts">
+    igo writes shim scripts for `go` and `gofmt` into `~/go/shims/`. The shims read `go.mod` or `.go_version` to resolve the correct versioned binary at runtime.
+  </Step>
+  <Step title="Create symlinks">
+    Three symlinks are created (or replaced) in the workspace:
+
+    | Symlink | Points to | Environment variable |
+    |---|---|---|
+    | `~/go/root` | `~/go/versions/<version>/go` | `GOROOT` |
+    | `~/go/bin` | `~/go/versions/<version>/go/bin` | `GOBIN` |
+    | `~/go/path` | `~/go/versions/<version>` | `GOPATH` |
+  </Step>
+  <Step title="Configure your shell">
+    igo injects `export` statements for `GOROOT`, `GOBIN`, `GOPATH`, `GOMODCACHE`, `GOOS`, `GOARCH`, and related variables into your shell profile (`.profile`, `.bash_profile`, or `.zshrc.local`). It also installs an activator script at `~/.igo` and prints sourcing instructions.
+  </Step>
+  <Step title="Verify the installation">
+    igo runs `go version` using the newly installed binary and checks that the output contains the expected version string.
+  </Step>
+  <Step title="Write the version file">
+    The active version string is written to `~/go/version`.
+  </Step>
+  <Step title="Install extra packages">
+    igo installs a set of extra Go tools using the new version's binary, including `govulncheck`, `bump`, `goenv`, and others.
+  </Step>
+  <Step title="Lock the version directory">
+    The version directory receives sticky and setuid/setgid bits, and a `installer.lock` file is written inside it. This prevents igo from modifying the directory in future runs. The workspace-level `installer.lock` is then removed.
+  </Step>
+</Steps>
+
+<Note>
+  The workspace-level `installer.lock` file at `~/go/installer.lock` is created at the start of installation and removed at the end. If a lock file is already present when you run `igo -i`, the command exits immediately without installing. If a previous install was interrupted and left a stale lock file, remove it manually before retrying:
+
+  ```bash
+  rm ~/go/installer.lock
+  ```
+</Note>

@@ -1,0 +1,56 @@
+---
+title: "Extra packages"
+description: "igo automatically installs a set of Go developer tools after each new Go version install."
+---
+
+After successfully installing a Go version, igo runs `go install <pkg>@latest` for a curated set of developer tools. These are installed into the new version's `bin/` directory.
+
+## Default packages
+
+The following packages are installed by default with every `igo -i`:
+
+| Binary | Module path |
+|--------|-------------|
+| `genwordpass` | `github.com/ProjectApario/genwordpass` |
+| `summarize` | `github.com/andreimerlescu/summarize` |
+| `counter` | `github.com/andreimerlescu/counter` |
+| `bump` | `github.com/andreimerlescu/bump` |
+| `goini` | `github.com/andreimerlescu/goini` |
+| `goenv` | `github.com/andreimerlescu/goenv` |
+| `govulncheck` | `golang.org/x/vuln/cmd/govulncheck` |
+| `go-generate-password` | `github.com/m1/go-generate-password/cmd/go-generate-password` |
+| `cli-gematria` | `github.com/andreimerlescu/cli-gematria` |
+
+<Note>
+  The `bump` tool is used by the shim to normalize two-part `go.mod` versions (e.g. `go 1.23` → `1.23.4`). Installing it is recommended for correct shim behavior.
+</Note>
+
+## Disabling extra package installation
+
+Pass `-extras=false` to skip the extra package install step:
+
+```bash
+igo -i 1.23.4 -extras=false
+```
+
+## How installation works
+
+Each package is installed using the versioned Go binary for the newly installed version:
+
+```
+<workspace>/versions/<version>/go/bin/go.<version> install <module>@latest
+```
+
+The environment used for installation sets `GOROOT`, `GOPATH`, `GOBIN`, `GOOS`, and `GOARCH` to the new version's directories, keeping the installs isolated from other versions.
+
+If any package fails to install, or its binary is not found at `GOBIN/<pkg>` afterward, the entire installation fails with an error.
+
+## Verifying installed tools
+
+After `igo -i`, list the binaries in the version's bin directory:
+
+```bash
+ls ~/go/versions/1.23.4/go/bin/
+```
+
+You should see the versioned Go binary (`go.1.23.4`), `gofmt.1.23.4`, and all the extra package binaries.

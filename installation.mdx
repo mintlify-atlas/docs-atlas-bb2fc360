@@ -1,0 +1,72 @@
+---
+title: "Installation"
+description: "Download the igo binary for your platform and configure your shell."
+---
+
+<Warning>
+  Do not use `go install github.com/andreimerlescu/igo@latest` if Go is already installed — igo is a Go version manager and using it through `go install` can break your existing Go environment.
+</Warning>
+
+<Steps>
+  <Step title="Download the binary">
+    Download the `igo` binary for your platform using `curl`. The commands below install it to `~/bin/igo`.
+
+    <CodeGroup>
+      ```bash macOS Apple Silicon
+      curl -L https://github.com/andreimerlescu/igo/releases/download/v1.1.1/igo-darwin-arm64 -o ~/bin/igo
+      ```
+
+      ```bash macOS Intel
+      curl -L https://github.com/andreimerlescu/igo/releases/download/v1.1.1/igo-darwin-amd64 -o ~/bin/igo
+      ```
+
+      ```bash Linux arm64
+      curl -L https://github.com/andreimerlescu/igo/releases/download/v1.1.1/igo-linux-arm64 -o ~/bin/igo
+      ```
+
+      ```bash Linux amd64
+      curl -L https://github.com/andreimerlescu/igo/releases/download/v1.1.1/igo-linux-amd64 -o ~/bin/igo
+      ```
+    </CodeGroup>
+
+    <Note>
+      macOS may quarantine the downloaded binary. Run the following command to remove the quarantine attribute before continuing:
+
+      ```bash
+      command -v xattr 2> /dev/null && xattr -d com.apple.quarantine ~/bin/igo
+      ```
+    </Note>
+  </Step>
+
+  <Step title="Set permissions">
+    Make the binary executable:
+
+    ```bash
+    chmod +x ~/bin/igo
+    ```
+  </Step>
+
+  <Step title="Add to PATH">
+    Add `~/bin` to your `PATH` so your shell can find `igo`:
+
+    ```bash
+    export PATH=~/bin:$PATH
+    ```
+
+    To make this permanent, add the same line to your shell configuration file (`~/.zshrc` or `~/.bashrc`).
+  </Step>
+
+  <Step title="Verify installation">
+    Confirm the binary is working:
+
+    ```bash
+    igo -v
+    ```
+
+    You should see output like:
+
+    ```
+    v1.1.1 - igo open source at github.com/ProjectApario/igo
+    ```
+  </Step>
+</Steps>

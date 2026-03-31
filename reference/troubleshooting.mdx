@@ -1,0 +1,120 @@
+---
+title: "Troubleshooting"
+description: "Diagnose and fix common issues with igo."
+---
+
+<Tip>
+  Run `igo -e` first. It displays the active version, all Go environment variables, PATH entries, and symlink status (✅/❌) — most issues are visible immediately.
+</Tip>
+
+## `go: command not found` after install
+
+Your shell hasn't picked up the new PATH. Source the igo activator:
+
+```bash
+source ~/.igo
+```
+
+If `~/.igo` doesn't exist, run `igo -i <version>` again — it creates the file on first install. Then add `source ~/.igo` to your shell config (`~/.zshrc` or `~/.bashrc`).
+
+## `which go` points to the wrong binary
+
+The shim at `~/go/shims/go` must come first in PATH. Check:
+
+```bash
+echo $PATH | tr ':' '\n' | head -5
+```
+
+`~/go/shims` should appear before any other Go path. If not, make sure `source ~/.igo` is at the end of your shell config so it overrides earlier entries.
+
+## Wrong Go version is active
+
+Check which version is active:
+
+```bash
+igo -l        # see all installed versions and which is ACTIVE
+go version    # see what the shim resolved
+```
+
+If the shim is picking up a version from a `go.mod` or `.go_version` file you didn't intend, check the current directory and its parents:
+
+```bash
+# find the nearest go.mod
+git rev-parse --show-toplevel 2>/dev/null && cat $(git rev-parse --show-toplevel)/go.mod | head -5
+```
+
+To force a specific version globally: `igo -s <version>`.
+
+## `installer.lock` prevents installation
+
+If a previous `igo -i` was interrupted, the lock file may remain:
+
+```bash
+rm ~/go/installer.lock
+```
+
+If a version-specific lock is blocking a reinstall:
+
+```bash
+rm ~/go/versions/<version>/installer.lock
+```
+
+## Broken symlinks after failed install
+
+Run the fix command:
+
+```bash
+igo -f <version>
+```
+
+This detects missing symlinks (`bin`, `root`, `path`) and recreates them. It also reports which symlinks are healthy.
+
+## `go version` reports wrong version inside a project
+
+The shim reads `go.mod` to determine the project's Go version. If your `go.mod` has a two-part version like `go 1.23`, the shim appends `.0` (making it `1.23.0`). Install that version if it's not present:
+
+```bash
+igo -i 1.23.0
+```
+
+Or add a `.go_version` file to override:
+
+```bash
+echo "1.23.4" > .go_version
+```
+
+## Uninstalled the active version accidentally
+
+If you uninstalled the currently active version, `go` will be missing. Install any available version and switch to it:
+
+```bash
+igo -i 1.23.4
+igo -s 1.23.4
+```
+
+## Environment variables not set in new terminal
+
+Make sure `source ~/.igo` is in your shell startup file:
+
+<Tabs>
+  <Tab title="zsh">
+    ```bash
+    echo 'source ~/.igo' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  </Tab>
+  <Tab title="bash">
+    ```bash
+    echo 'source ~/.igo' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+  </Tab>
+</Tabs>
+
+## Checking symlink health manually
+
+```bash
+ls -la ~/go/bin ~/go/root ~/go/path
+```
+
+Each should show a `->` pointing into `~/go/versions/<active-version>/...`. If any are missing or point to a non-existent target, run `igo -f <version>`.

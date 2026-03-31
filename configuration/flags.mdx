@@ -1,0 +1,216 @@
+---
+title: "CLI flags"
+description: "Complete reference for all igo command-line flags."
+---
+
+## Quick reference
+
+| Flag | Kind | Example | Description |
+|---|---|---|---|
+| `-i <version>` | string | `igo -i 1.23.4` | Install Go version `1.23.4` |
+| `-u <version>` | string | `igo -u 1.23.4` | Uninstall Go version `1.23.4` |
+| `-s <version>` | string | `igo -s 1.24.2` | Switch to version `1.24.2` |
+| `-a <version>` | string | `igo -a 1.24.2` | Activate Go version `1.24.2` |
+| `-f <version>` | string | `igo -f 1.24.2` | Fix installation of `1.24.2` |
+| `-l` | bool | `igo -l` | List all installed Go versions |
+| `-e` | bool | `igo -e` | Display environment of active installation |
+| `-v` / `-version` | bool | `igo -v` | Display igo binary version |
+| `-h` / `-help` | bool | `igo -h` | Display help |
+| `-godir <path>` | string | `igo -godir /opt/go` | Override workspace directory |
+| `-goos <os>` | string | `igo -goos linux` | Override target OS |
+| `-goarch <arch>` | string | `igo -goarch amd64` | Override target architecture |
+| `-system` | bool | `igo -i 1.23.4 -system` | Install in system mode at `/usr/go` |
+| `-debug` | bool | `igo -i 1.23.4 -debug` | Enable debug output |
+| `-verbose` | bool | `igo -i 1.23.4 -verbose` | Enable verbose output |
+| `-extras` | bool | `igo -i 1.23.4 -extras` | Install extra packages after Go |
+| `-extra-packages` | map | see below | Customize extra packages to install |
+
+---
+
+## Commands
+
+These flags trigger the primary actions igo performs. All version flags accept a string in `X.Y.Z` format.
+
+<ParamField path="-i" type="string">
+  Install a specific version of Go. igo downloads the official tarball from `go.dev/dl`, extracts it into your workspace, renames the versioned binaries, creates shims, and sets up symlinks. The minimum supported version is `1.16.0`.
+
+  ```bash
+  igo -i 1.23.4
+  igo -i 1.23.4 -godir /Shared/go -debug
+  ```
+</ParamField>
+
+<ParamField path="-u" type="string">
+  Uninstall a specific version of Go. igo removes the sticky bit and set-uid/set-gid permissions from the version directory before deleting it, then updates symlinks if the removed version was the active one.
+
+  ```bash
+  igo -u 1.23.4
+  ```
+</ParamField>
+
+<ParamField path="-s" type="string">
+  Switch to an already-installed version of Go. Updates the `~/go/version` file and rewrites the `bin`, `root`, and `path` symlinks to point at the specified version.
+
+  ```bash
+  igo -s 1.24.2
+  ```
+</ParamField>
+
+<ParamField path="-a" type="string">
+  Activate an already-installed version of Go. This is an alias for `-s` and behaves identically.
+
+  ```bash
+  igo -a 1.24.2
+  ```
+</ParamField>
+
+<ParamField path="-f" type="string">
+  Fix a Go version installation. Re-runs the post-install setup steps (symlinks, shims, binary renaming) for the specified version without re-downloading the tarball.
+
+  ```bash
+  igo -f 1.24.2
+  ```
+</ParamField>
+
+<ParamField path="-l" type="boolean">
+  List all installed Go versions in a formatted table. The active version is marked with `* ACTIVE`.
+
+  ```bash
+  igo -l
+  ```
+
+  Example output:
+
+  ```text
+  igo [open source at github.com/ProjectApario/igo]
+  ┌──────────┬──────────────────┬─────────────┐
+  │ VERSION  │     CREATION     │   STATUS    │
+  ├──────────┼──────────────────┼─────────────┤
+  │ 1.24.3   │ 2025-05-22 11:15 │             │
+  │ 1.23.4   │ 2025-05-22 11:30 │  * ACTIVE   │
+  └──────────┴──────────────────┴─────────────┘
+  ```
+</ParamField>
+
+<ParamField path="-e" type="boolean">
+  Display the environment of the currently active Go installation. Shows the resolved values of `GOROOT`, `GOBIN`, `GOPATH`, `GOMODCACHE`, `GOOS`, and `GOARCH`.
+
+  ```bash
+  igo -e
+  ```
+</ParamField>
+
+<ParamField path="-v" type="boolean">
+  Display the igo binary version. `-version` is an alias for this flag.
+
+  ```bash
+  igo -v
+  # v1.1.1 - igo open source at github.com/ProjectApario/igo
+
+  igo -version
+  ```
+</ParamField>
+
+<ParamField path="-h" type="boolean">
+  Display help information. `-help` is an alias for this flag.
+
+  ```bash
+  igo -h
+  igo -help
+  ```
+</ParamField>
+
+---
+
+## Options
+
+These flags modify the behavior of the command flags above. You can combine them with any command flag.
+
+<ParamField path="-godir" type="string" default="~/go">
+  The directory where igo installs and manages Go versions. Defaults to `~/go` in your home directory. Use this to share a Go installation across users or to put it on a separate volume.
+
+  ```bash
+  igo -i 1.23.4 -godir /Shared/go
+  igo -l -godir /Shared/go
+  ```
+</ParamField>
+
+<ParamField path="-goos" type="string" default="detected">
+  Override the target operating system. Defaults to the OS detected at runtime via `runtime.GOOS`. Useful for cross-platform tarball downloads.
+
+  ```bash
+  igo -i 1.23.4 -goos linux
+  ```
+</ParamField>
+
+<ParamField path="-goarch" type="string" default="detected">
+  Override the target CPU architecture. Defaults to the architecture detected at runtime via `runtime.GOARCH`. Useful for downloading a tarball for a different architecture.
+
+  ```bash
+  igo -i 1.23.4 -goarch amd64
+  ```
+</ParamField>
+
+<ParamField path="-system" type="boolean" default="false">
+  Install Go in system mode. When set, igo uses `/usr/go` as the workspace instead of `~/go`. You typically need elevated permissions to write to `/usr/go`.
+
+  ```bash
+  igo -i 1.23.4 -system
+  ```
+</ParamField>
+
+<ParamField path="-debug" type="boolean" default="false">
+  Enable debug output. Prints additional diagnostic information during command execution, including internal state and file operations.
+
+  ```bash
+  igo -i 1.23.4 -debug
+  ```
+</ParamField>
+
+<ParamField path="-verbose" type="boolean" default="false">
+  Enable verbose output. Prints progress messages during installation and other operations, such as symlink creation and version check results.
+
+  ```bash
+  igo -i 1.23.4 -verbose
+  ```
+</ParamField>
+
+<ParamField path="-extras" type="boolean" default="true">
+  Install extra Go packages after a successful `igo -i`. This is enabled by default. Pass `-extras=false` to skip the extra package installation step.
+
+  ```bash
+  igo -i 1.23.4 -extras=false
+  ```
+</ParamField>
+
+<ParamField path="-extra-packages" type="map">
+  Customize the set of extra packages installed after `igo -i`. Accepts a map of package name to module path. Overrides the built-in default package list.
+
+  The default extra packages installed are:
+
+  | Name | Module |
+  |---|---|
+  | `genwordpass` | `github.com/ProjectApario/genwordpass` |
+  | `summarize` | `github.com/andreimerlescu/summarize` |
+  | `counter` | `github.com/andreimerlescu/counter` |
+  | `bump` | `github.com/andreimerlescu/bump` |
+  | `goini` | `github.com/andreimerlescu/goini` |
+  | `goenv` | `github.com/andreimerlescu/goenv` |
+  | `govulncheck` | `golang.org/x/vuln/cmd/govulncheck` |
+  | `go-generate-password` | `github.com/m1/go-generate-password/cmd/go-generate-password` |
+  | `cli-gematria` | `github.com/andreimerlescu/cli-gematria` |
+</ParamField>
+
+---
+
+## Config file
+
+igo uses the [`figtree`](https://github.com/andreimerlescu/figtree) library for configuration. If the file `~/.igo.config.yml` exists, igo loads it automatically at startup and merges its values with any flags you pass on the command line. Command-line flags take precedence over values in the config file.
+
+```yaml
+# ~/.igo.config.yml
+godir: /Shared/go
+debug: false
+verbose: true
+extras: true
+```

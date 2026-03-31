@@ -1,0 +1,83 @@
+---
+title: "Docker testing"
+description: "Run igo's test suite in Docker for isolated, reproducible testing."
+---
+
+igo ships a `Dockerfile` and test scripts that let you build and test the binary in a clean Debian environment — no local Go installation required.
+
+## How it works
+
+The Docker setup uses a two-stage build:
+
+1. **Builder stage** — compiles `igo` from source using `golang:1.26-bookworm`
+2. **Runtime stage** — runs `tester.sh` as an unprivileged `tester` user on `debian:bookworm-slim`
+
+The test container installs `git`, `curl`, `bash`, `sudo`, `tree`, `bc`, and `bump`, then runs the full `tester.sh` script against the compiled binary.
+
+## Build and run
+
+```bash
+# Build the image and run tests
+docker build -t igo-test .
+docker run --rm igo-test
+```
+
+The `test.sh` helper script wraps these commands with useful options:
+
+```bash
+# Default: build and run
+./test.sh
+
+# Skip rebuild, just run
+./test.sh --build false
+
+# Remove old image, then build and run
+./test.sh --rm true
+
+# Enable verbose and debug output in tester.sh
+./test.sh --verbose true --debug true
+
+# Combined
+./test.sh --rm true --debug true --verbose true
+```
+
+## Dockerfile
+
+```dockerfile Dockerfile
+FROM golang:1.26-bookworm AS builder
+WORKDIR /src
+COPY . .
+RUN go mod download
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /bin/igo
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y git ca-certificates bash curl sudo tree bc
+RUN curl -sL "https://github.com/andreimerlescu/bump/releases/download/v1.0.4-beta.1/bump-linux-amd64" \
+    -o /bin/bump && chmod +x /bin/bump
+RUN useradd -m -d /home/tester tester && chown -R tester:tester /home/tester
+COPY --from=builder /bin/igo /bin/igo
+COPY testing/*.sh /home/tester/
+RUN chmod +x /bin/igo /home/tester/tester.sh
+USER tester
+WORKDIR /home/tester
+ENV HOME=/home/tester
+CMD ["-version"]
+```
+
+## What tester.sh tests
+
+The `testing/tester.sh` script runs a sequence of integration tests against the compiled `igo` binary:
+
+- `igo -v` — verify version output
+- `igo -e` — verify environment display
+- `igo -l` — list installed versions (initially empty)
+- `igo -i <version>` — install one or more Go versions
+- `igo -s <version>` — switch between versions
+- `igo -u <version>` — uninstall a version
+- `igo -f <version>` — fix a version installation
+
+Tests run with a timeout enforced by `test-in-timeout.sh`. Results are captured to `testing/results/` for archival.
+
+<Note>
+  The GitHub Actions workflow (`test-igo.yml`) runs these Docker tests automatically on protected branches (`master`, `release`, `develop`).
+</Note>

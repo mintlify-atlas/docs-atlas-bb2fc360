@@ -1,0 +1,133 @@
+---
+title: "Shims"
+description: "How igo's shim scripts automatically select the right Go version per project."
+---
+
+igo installs lightweight shim scripts at `~/go/shims/go` and `~/go/shims/gofmt`. When your shell's `PATH` has `~/go/shims` before any other Go binary, every `go` command passes through the shim first.
+
+## How version resolution works
+
+The shim walks up the directory tree from your current working directory, checking for a version specifier at each level:
+
+<Steps>
+  <Step title="Check for .go_version">
+    If a `.go_version` file exists in the current or any parent directory, its contents are used as the Go version.
+  </Step>
+  <Step title="Check go.mod">
+    If a `go.mod` file exists, the shim reads the `go` directive line (e.g. `go 1.23.4`). If the version has only two parts (e.g. `1.23`), the shim appends `.0` to make it `1.23.0`. If the `bump` tool is installed, it uses `bump` to normalize the version.
+  </Step>
+  <Step title="Fall back to global version">
+    If no per-project version file is found, the shim reads `~/go/version` for the globally active version.
+  </Step>
+  <Step title="Auto-install if missing">
+    If the resolved version is not installed, the shim runs `igo -i <version>` automatically before executing the command.
+  </Step>
+</Steps>
+
+## Shim source
+
+The `go` shim (`~/go/shims/go`) is embedded in the igo binary and written to disk during `igo -i`. Here is the full script:
+
+```bash shim.go.sh
+#!/bin/bash
+
+set -e
+set -u
+set -C
+[ -n "${DEBUG:-}" ] && [ "${DEBUG:-}" != "false" ] && set -x
+[ -n "${VERBOSE:-}" ] && [ "${VERBOSE:-}" != "false" ] && set -v
+
+declare GODIR
+GODIR="${HOME:-"/home/$(whoami)"}/go"
+
+function safe_exit() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
+get_go_binary_path_for_version() {
+    local binary="${GODIR}/versions/${1}/go/bin/go.${1}"
+    { [ -f "$binary" ] && echo "$binary"; } || echo ""
+}
+
+find_version() {
+  local dir="$PWD"
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/.go_version" ]]; then
+      cat "$dir/.go_version"
+      return
+    fi
+    if [[ -f "$dir/go.mod" ]]; then
+      local gomod_version
+      gomod_version=$(grep -E "^go [0-9]+\.[0-9]+(\.[0-9]+|[a-zA-Z0-9]+)?" "$dir/go.mod" | awk '{print $2}')
+      if [[ -n "$gomod_version" ]]; then
+        if [[ "$gomod_version" =~ ^[0-9]+\.[0-9]+$ ]]; then
+          if command -v bump 2>&1 /dev/null; then
+            if bump -fix -gomod -in "${dir}/go.mod" && bump -write -fix -gomod -in "${dir}/go.mod"; then
+              bump -gomod -in "${dir}/go.mod"
+              return
+            else
+              echo "${gomod_version}.0"
+            fi
+          else
+            echo "${gomod_version}.0"
+          fi
+        else
+          echo "$gomod_version"
+        fi
+        return
+      fi
+    fi
+    dir=$(dirname "$dir")
+  done
+  if [ ! -f "${GODIR}/version" ]; then
+    safe_exit "No global Go version installed at ${GODIR}/version."
+  fi
+  cat "${GODIR}/version"
+}
+
+GOVERSION="$(find_version)"
+GOBINARY="$(get_go_binary_path_for_version "${GOVERSION}")"
+if [[ -z "${GOBINARY}" ]]; then
+  echo "Missing Go version ${GOVERSION}! installing now..."
+  igo -i "${GOVERSION}" || safe_exit "Failed to install Go version ${GOVERSION}"
+  GOBINARY="$(get_go_binary_path_for_version "${GOVERSION}")"
+  [[ -z "${GOBINARY}" ]] && safe_exit "Failed to install Go version ${GOVERSION}"
+fi
+
+GOBIN="${GODIR}/versions/${GOVERSION}/go/bin"
+GOMODCACHE="${GODIR}/versions/${GOVERSION}/go/pkg/mod"
+GOROOT="${GODIR}/versions/${GOVERSION}/go"
+GOPATH="${GODIR}/versions/${GOVERSION}"
+
+export GOBIN
+export GOROOT
+export GOPATH
+export GOMODCACHE
+
+exec "${GOBINARY}" "$@"
+```
+
+## Per-project version pinning
+
+Create a `.go_version` file in your project root to pin a specific Go version:
+
+```bash
+echo "1.23.4" > .go_version
+```
+
+The shim checks for `.go_version` before reading `go.mod`, so this file takes precedence. This is useful when your `go.mod` specifies a two-part version like `go 1.23` but you want to pin to a specific patch release.
+
+## PATH ordering
+
+For shims to work correctly, `~/go/shims` must appear before any other Go binary in `PATH`. The igo activator script (`~/.igo`) ensures this ordering:
+
+```bash
+export PATH="${IGO_SHIMS}:${IGO_BIN}:${PATH}"
+```
+
+If you have another Go installation (e.g. from Homebrew or a system package), make sure `source ~/.igo` comes after those entries in your shell config so igo's shims take precedence.
+
+<Tip>
+  Run `which go` to verify the shim is active. The output should be `~/go/shims/go`.
+</Tip>

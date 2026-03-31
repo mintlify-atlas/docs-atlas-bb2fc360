@@ -1,6 +1,6 @@
 ---
-title: "igo — Install Go"
-description: "Install and manage multiple Go versions on macOS and Linux without root privileges."
+title: "Introduction"
+description: "igo installs and manages multiple Go versions on macOS and Linux — no root required."
 ---
 
 **igo** (Install Go) is a CLI tool that lets you install, switch between, and manage multiple versions of Go on your system. It runs entirely in your `$HOME` directory and never requires `sudo`.
@@ -16,11 +16,13 @@ description: "Install and manage multiple Go versions on macOS and Linux without
     Full reference for all igo flags and commands
   </Card>
   <Card title="Configuration" icon="gear" href="/configuration/flags">
-    Customize workspace directory, target OS, architecture, and more
+    Customize the workspace directory, target OS, architecture, and more
   </Card>
 </CardGroup>
 
-## Key features
+## What igo does
+
+igo downloads official Go release tarballs from `go.dev/dl`, extracts them into a versioned directory structure under `~/go/versions/`, and manages symlinks so your shell always points at the active version.
 
 <CardGroup cols={2}>
   <Card title="No root required" icon="shield-check">
@@ -33,7 +35,7 @@ description: "Install and manage multiple Go versions on macOS and Linux without
     Shims read `go.mod` or `.go_version` to auto-select the right version per project.
   </Card>
   <Card title="Shell auto-configuration" icon="square-terminal">
-    igo writes a `~/.igo` activator script that sets `GOROOT`, `GOBIN`, `GOPATH`, and `GOMODCACHE`.
+    igo writes `GOROOT`, `GOBIN`, `GOPATH`, and `GOMODCACHE` to your shell profile.
   </Card>
 </CardGroup>
 
@@ -47,3 +49,25 @@ description: "Install and manage multiple Go versions on macOS and Linux without
 <Warning>
   Windows is not supported. Use Go's official MSI installer on Windows instead.
 </Warning>
+
+## How it works
+
+igo organizes Go versions under a single workspace directory (default: `~/go`):
+
+```
+~/go/
+├── version          # active version string (e.g. "1.23.4")
+├── versions/
+│   ├── 1.23.4/
+│   │   └── go/      # extracted Go toolchain
+│   └── 1.22.6/
+│       └── go/
+├── bin -> versions/1.23.4/go/bin   # symlink (GOBIN)
+├── root -> versions/1.23.4/go      # symlink (GOROOT)
+├── path -> versions/1.23.4         # symlink (GOPATH)
+└── shims/
+    ├── go           # shim script — resolves version from go.mod
+    └── gofmt        # shim script
+```
+
+When you run `go build`, the shim in `~/go/shims/go` looks up the nearest `go.mod` (or `.go_version` file) and executes the matching versioned binary automatically.

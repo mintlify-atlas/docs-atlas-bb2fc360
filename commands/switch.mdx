@@ -1,0 +1,63 @@
+---
+title: "Switch Go versions"
+description: "Switch the active Go version using igo -s or igo -a."
+---
+
+The `-s` and `-a` flags are aliases for the same operation: they update the workspace symlinks and version file to point at a different installed Go version.
+
+## Syntax
+
+```bash
+igo -s <version>
+igo -a <version>
+```
+
+<ParamField path="version" type="string" required>
+  The Go version to activate in `X.Y.Z` format (e.g. `1.23.4`). The version must already be installed in your workspace.
+</ParamField>
+
+## Examples
+
+```bash
+# Switch to Go 1.23.4
+igo -s 1.23.4
+
+# Activate Go 1.24.0 (alias for -s)
+igo -a 1.24.0
+
+# Switch with verbose output
+igo -s 1.23.4 -verbose
+```
+
+## What it does
+
+<Steps>
+  <Step title="Check the workspace">
+    igo verifies that the workspace directory (default: `~/go`) exists. If no Go versions have been installed, the command exits.
+  </Step>
+  <Step title="Read the current active version">
+    igo reads `~/go/version` to determine which version is currently active.
+  </Step>
+  <Step title="Check if already on the requested version">
+    If the requested version matches the currently active version, igo prints `Already using version <version>` and exits without making any changes.
+  </Step>
+  <Step title="Verify the target version is installed">
+    igo checks that `~/go/versions/<version>` exists. If the directory is not found, the command exits without making changes.
+  </Step>
+  <Step title="Replace symlinks">
+    The existing `bin`, `path`, and `root` symlinks in the workspace are removed and recreated pointing at the new version's directories:
+
+    | Symlink | New target |
+    |---|---|
+    | `~/go/root` | `~/go/versions/<version>/go` |
+    | `~/go/bin` | `~/go/versions/<version>/go/bin` |
+    | `~/go/path` | `~/go/versions/<version>` |
+  </Step>
+  <Step title="Update the version file">
+    `~/go/version` is overwritten with the new version string.
+  </Step>
+</Steps>
+
+<Warning>
+  The target version must already be installed. Run `igo -i <version>` first if you have not installed it yet. You can see all installed versions with `igo -l`.
+</Warning>

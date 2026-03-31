@@ -1,0 +1,40 @@
+---
+title: "Changelog"
+description: "Release history for igo."
+---
+
+## v1.1.1
+
+Current release.
+
+- Activator script (`~/.igo`) replaces direct shell config patching — igo now writes a single sourceable script instead of injecting `export` lines into `.bashrc`/`.zshrc`
+- `igo-rehash` shell function added to the activator (no-op, reserved for future shim regeneration)
+- Shell detection improved: reads `$SHELL`, falls back to `/etc/passwd`, then OS default
+- `IGO_SOURCED` guard prevents double-sourcing the activator
+
+## v1.1.0
+
+- Added `-a` (activate) flag as an alias for `-s` (switch)
+- Added `-f` (fix) command to repair broken symlinks
+- Added `-e` (env) command to display Go environment and symlink health
+- GitHub Actions workflow (`test-igo.yml`) added for automated testing on protected branches
+- Pre-compiled binaries uploaded to GitHub Releases for all supported platforms
+
+## v1.0.0
+
+Initial release.
+
+- `-i <version>` — install a Go version from go.dev/dl
+- `-u <version>` — uninstall a Go version
+- `-s <version>` — switch the active Go version
+- `-l` — list installed versions with creation time and active status
+- `-v` / `-version` — display igo binary version
+- `-godir`, `-goos`, `-goarch` flags for custom workspace and cross-platform installs
+- Shim scripts (`go`, `gofmt`) with automatic version resolution from `go.mod` and `.go_version`
+- Extra packages installed automatically after each Go version install
+
+---
+
+<Note>
+  For the full list of commits and release assets, see the [GitHub Releases page](https://github.com/andreimerlescu/igo/releases).
+</Note>

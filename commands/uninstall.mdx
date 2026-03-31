@@ -1,0 +1,50 @@
+---
+title: "Uninstall a Go version"
+description: "Remove an installed Go version using igo -u."
+---
+
+The `-u` flag removes an installed Go version from your workspace, including its extracted toolchain directory. If the version being removed is currently active, the workspace symlinks and version file are also removed.
+
+## Syntax
+
+```bash
+igo -u <version>
+```
+
+<ParamField path="version" type="string" required>
+  The Go version to uninstall in `X.Y.Z` format (e.g. `1.22.6`).
+</ParamField>
+
+## Examples
+
+```bash
+# Uninstall Go 1.22.6
+igo -u 1.22.6
+
+# Uninstall with verbose output
+igo -u 1.22.6 -verbose
+```
+
+## What it does
+
+<Steps>
+  <Step title="Check the workspace">
+    igo verifies that the workspace directory exists and that there is an active version recorded in `~/go/version`.
+  </Step>
+  <Step title="Remove sticky and permission bits">
+    The sticky bit and setuid/setgid bits are removed from the version directory at `~/go/versions/<version>`. This reverses the protections applied at the end of installation, making the directory safe to delete.
+  </Step>
+  <Step title="Remove active symlinks (if applicable)">
+    If the version being uninstalled matches the currently active version, igo removes the `bin`, `path`, and `root` symlinks from the workspace and deletes the `~/go/version` file.
+  </Step>
+  <Step title="Make the directory writable">
+    igo recursively makes all files and directories under `~/go/versions/<version>` writable to ensure the removal succeeds.
+  </Step>
+  <Step title="Remove the version directory">
+    The entire `~/go/versions/<version>` directory tree is deleted.
+  </Step>
+</Steps>
+
+<Warning>
+  Uninstalling your currently active Go version removes the `bin`, `path`, and `root` symlinks and the `~/go/version` file, leaving your environment without an active Go. After uninstalling, activate another installed version with `igo -s <version>`. You can see what is installed with `igo -l`.
+</Warning>

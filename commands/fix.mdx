@@ -1,0 +1,59 @@
+---
+title: "Fix a Go installation"
+description: "Repair broken symlinks for an installed Go version using igo -f."
+---
+
+The `-f` flag scans the workspace for missing symlinks and recreates any that are absent, pointing them at the correct locations within the specified version's directory.
+
+## Syntax
+
+```bash
+igo -f <version>
+```
+
+<ParamField path="version" type="string" required>
+  The Go version to repair in `X.Y.Z` format (e.g. `1.23.4`). The version must already be installed in your workspace.
+</ParamField>
+
+## Examples
+
+```bash
+# Fix the installation of Go 1.23.4
+igo -f 1.23.4
+
+# Fix with verbose output
+igo -f 1.23.4 -verbose
+```
+
+## What it does
+
+<Steps>
+  <Step title="Scan the workspace for symlinks">
+    igo reads the workspace directory and finds all existing symlinks. If no versions are installed, the command exits.
+  </Step>
+  <Step title="Read the active version">
+    igo reads `~/go/version` to determine which version is currently active.
+  </Step>
+  <Step title="Check for missing symlinks">
+    igo checks whether the `bin`, `path`, and `root` symlinks are present in the workspace and maps them to their corresponding environment variables:
+
+    | Workspace symlink | Environment variable | Expected target |
+    |---|---|---|
+    | `~/go/bin` | `GOBIN` | `~/go/versions/<version>/go/bin` |
+    | `~/go/path` | `GOPATH` | `~/go/versions/<version>` |
+    | `~/go/root` | `GOROOT` | `~/go/versions/<version>/go` |
+  </Step>
+  <Step title="Recreate missing symlinks">
+    For each missing symlink, igo creates it pointing at the correct path within the version directory. Existing entries that are already present are left unchanged.
+  </Step>
+  <Step title="Report the result">
+    If any symlinks were recreated, igo prints `Fixed go <version>!`. If everything was already in order, it prints `Nothing to fix!`.
+  </Step>
+</Steps>
+
+## When to use it
+
+- After a failed `igo -i` run left the workspace in a partial state.
+- After manually moving or deleting files inside the workspace.
+- After a disk-full error interrupted an installation.
+- When `igo -e` shows `❌` next to a symlink.

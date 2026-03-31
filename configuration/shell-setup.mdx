@@ -1,0 +1,126 @@
+---
+title: "Shell setup"
+description: "Configure your shell to use igo-managed Go versions."
+---
+
+When you run `igo -i` for the first time, igo writes a shell activator script to `~/.igo`. This script sets the environment variables your shell needs to find the correct Go binaries and adjusts your `PATH` so the igo shims take precedence.
+
+<Tip>
+  igo detects your shell automatically using the `$SHELL` environment variable, falling back to `/etc/passwd` if `$SHELL` is not set. It recognizes `bash`, `zsh`, `fish`, `ksh`, `csh`, `tcsh`, and `sh`.
+</Tip>
+
+## Add the activator to your shell config
+
+After igo creates `~/.igo`, source it from your shell configuration file so it runs in every new terminal session.
+
+<Tabs>
+  <Tab title="zsh">
+    Add the following line to your `~/.zshrc`:
+
+    ```bash
+    source ~/.igo
+    ```
+
+    Then apply the change without restarting your terminal:
+
+    ```bash
+    source ~/.zshrc
+    ```
+  </Tab>
+  <Tab title="bash">
+    Add the following line to your `~/.bashrc` or `~/.bash_profile`:
+
+    ```bash
+    source ~/.igo
+    ```
+
+    Then apply the change without restarting your terminal:
+
+    ```bash
+    source ~/.bashrc
+    # or
+    source ~/.bash_profile
+    ```
+  </Tab>
+  <Tab title="other">
+    For any POSIX-compatible shell (fish, ksh, etc.), add the following line to your shell's startup file (e.g. `~/.profile`):
+
+    ```bash
+    source ~/.igo
+    ```
+
+    Then either restart your terminal or source the file directly.
+  </Tab>
+</Tabs>
+
+## What the activator does
+
+The `~/.igo` script performs the following steps every time your shell starts:
+
+1. **Guards against double-sourcing.** If `IGO_SOURCED` is already set in the environment, the script returns immediately. This prevents PATH from being prepended multiple times in nested shell sessions.
+
+2. **Sets core igo variables.** Three variables are exported to establish the workspace layout:
+   - `IGO_ROOT` — the workspace root (`~/go`)
+   - `IGO_SHIMS` — the shims directory (`~/go/shims`)
+   - `IGO_BIN` — the active binary directory (`~/go/bin`)
+
+3. **Prepends shims and bin to PATH.** The script checks whether `IGO_SHIMS` is already in `PATH`. If not, it prepends both `IGO_SHIMS` and `IGO_BIN` so igo's shims resolve first.
+
+4. **Reads the active version and sets Go environment variables.** If `~/go/version` exists, its contents are read to determine the active version string. Four Go environment variables are then exported pointing at that version's directories.
+
+5. **Defines `igo-rehash`.** A no-op shell function named `igo-rehash` is defined as a placeholder for future shim regeneration logic.
+
+## Environment variables
+
+After sourcing `~/.igo`, the following environment variables are available in your shell:
+
+| Variable | Value | Description |
+|---|---|---|
+| `IGO_ROOT` | `~/go` | igo workspace root |
+| `IGO_SHIMS` | `~/go/shims` | Shim scripts directory, prepended to `PATH` |
+| `IGO_BIN` | `~/go/bin` | Active Go binaries, prepended to `PATH` |
+| `GOROOT` | `~/go/versions/<ver>/go` | Go standard library root |
+| `GOBIN` | `~/go/versions/<ver>/go/bin` | Directory where `go install` places binaries |
+| `GOPATH` | `~/go/versions/<ver>` | Go workspace path |
+| `GOMODCACHE` | `~/go/versions/<ver>/go/pkg/mod` | Module download cache |
+
+`<ver>` is the version string read from `~/go/version` (e.g. `1.23.4`).
+
+<Note>
+  If `~/go/version` does not exist (no version has been activated yet), the `GOROOT`, `GOBIN`, `GOPATH`, and `GOMODCACHE` variables are not exported. Run `igo -i <version>` to install and activate your first Go version.
+</Note>
+
+## Activator script template
+
+The following is the full content of the activator script that igo writes to `~/.igo`:
+
+```bash
+# ~/.igosh  (or ~/go/.igosh)
+
+if [[ -n "${IGO_SOURCED:-}" ]]; then
+    return 0
+fi
+IGO_SOURCED=1
+
+export IGO_ROOT="${HOME}/go"
+export IGO_SHIMS="${IGO_ROOT}/shims"
+export IGO_BIN="${IGO_ROOT}/bin"
+
+case ":${PATH}:" in
+  *":${IGO_SHIMS}:"*)  ;;    # already there
+  *) export PATH="${IGO_SHIMS}:${IGO_BIN}:${PATH}" ;;
+esac
+
+if [[ -f "${IGO_ROOT}/version" ]]; then
+    ver=$(<"${IGO_ROOT}/version")
+    export GOROOT="${IGO_ROOT}/versions/${ver}/go"
+    export GOBIN="${GOROOT}/bin"
+    export GOPATH="${IGO_ROOT}/versions/${ver}"
+    export GOMODCACHE="${GOROOT}/pkg/mod"
+fi
+
+igo-rehash() {
+    # can regenerate shims if needed in the future
+    :
+}
+```
